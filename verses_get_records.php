@@ -9,6 +9,7 @@
 	$iFetchCount = intval(GetParam('fetchcount', 5));
 	if ($iFetchCount < 0) 	{ $iFetchCount = 0; }
 	if ($iFetchCount > 10) 	{ $iFetchCount = 10; }
+	
 	if ($iFetchCount > 0)
 	{ $sFetchLimit = " LIMIT " . $iFetchCount;	}
 	else
@@ -21,6 +22,11 @@
 	$metaData['minphrasewordcount'] = $iMinPhraseWordCount;
 	$metaData['commonwordlist'] = implode(',', COMMON_WORDS);
 
+	$iTestRows = intval(GetParam('testrows', 0));
+	$iBonusCount = intval(GetParam('bonuscount', 4));
+
+	print_r("asdf");
+	
 	$sql = 
 		"SELECT " . 
 		"BV.verseid, BV.refcode, BV.refpretty, BV.transcode, BV.versetext, " .
@@ -29,60 +35,37 @@
 		"'' AS versewordsclean, " .
 		"'' AS keywordlist " .
 		"FROM bibleverses BV " .
-		"ORDER BY RAND()" . $sFetchLimit;
+		"WHERE (istest = " . $iTestRows . ") " . 
+		"ORDER BY RAND() " . $sFetchLimit;
+		//"ORDER BY verseid ASC LIMIT 99";
 
 	// Fetch rows from test table
 	$result = $dblink->query($sql);
 	if (!$result) { echo "Database Query Error: " . $dblink -> error; } else {
-		$dbdata = array();
-	    
+		$db_data = array();
 		while ( $row = $result->fetch_assoc())  {
-			// $dbdata[]=$row;
-			$dbdata[]=array_map("utf8_encode", $row);
+			$db_rows[] = array_map("utf8_encode", $row);
 		}
 
-		// Freelancer Project Tasks - Now that we have multiple records
-		// and an integer value for $iMinPhraseWordCount
-		//
-		// A - Calculate the list in original word order 
-		//     without punctuation in versetext for each row.
-		//     Store that result in versewordsclean for each record.
-		//
-		// B - Make a list of keywords found in each verse 
-		//     with no duplicates or punctuation.
-		//     Store that result in keywordlist for each record.
-		//
-		// C - Find any words in this verse text that are unique 
-		//     from all these selected verses
-		//     and store that list as comma-delimited 
-		//     in uniquewordlist with no spaces.
-		//
-		// D - Find the unique starting phrase for each verse 
-		//     and store that in uniquestartingphrase.
-		//     So how many words in do you have to go for 
-		//     these verse to be different then the others here.
-		//     And if less than $iMinPhraseWordCount, 
-		//     then go at least that far in in the answer.
-		//
-		// Note apostrophes, conjuctions and possessives
-		// count as a single word in each case.
-		// So "it's" is a single word. 
-		// "Paul's" is 1 word and so is "wasn't".
-		//
-		// We want to return an array of records identical 
-		// to how the example above returns $dbdata[] as JSON.
-		// If you have to create a new functional array to do this, 
-		// that is fine.
+		/* This works fine, but no random rows added...
+		// $db_rows = array_merge($db_rows, getRandomObjectArray($iBonusCount));
+		// $db_rows = getRandomizeArrayOrder($db_rows);
+		$db_rows = generateUniqueWordsPhrases($db_rows, $iMinPhraseWordCount);
+		*/
 
+		/* This works fine, but no unique phrases and words added.
+		$db_rows = array_merge($db_rows, getRandomObjectArray($iBonusCount));
+		$db_rows = getRandomizeArrayOrder($db_rows);
+		// $db_rows = generateUniqueWordsPhrases($db_rows, $iMinPhraseWordCount);
+		*/
 
-		/*********************This is Gerard's Code*******************************************/
-		$ibonusCount = intval(GetParam('bonuscount', 5));
-		$dbdata=array_merge($dbdata,getRandomObjectArray($ibonusCount));
-		$dbdata=getRandomizeArrayOrder($dbdata);
-		/*************************************************************************************/
-
-
-		returnJsonHttpResponse(true, $dbdata);
+		// This does not work, and this is my goal!
+		$db_rows = array_merge($db_rows, getRandomObjectArray($iBonusCount));
+		$db_rows = getRandomizeArrayOrder($db_rows);
+		print_r("asdf");
+		$db_rows = generateUniqueWordsPhrases($db_rows, $iMinPhraseWordCount);
+					
+		returnJsonHttpResponse(true, $db_rows);
 	}
 	$dblink = nil;
 	
